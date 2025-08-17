@@ -655,6 +655,7 @@ std::unique_ptr<StorageIterator> LsmStorageInner::Scan(const Bound& lower, const
 1.  **获取快照**: 与 `Get` 操作一样，首先获取一个线程安全的状态快照。
 2.  **`MemTable` 迭代器**: 为当前活跃的 `MemTable` 和所有不可变的 `imm_memtables` 创建 `MemTableIterator`。这些迭代器提供了对内存中有序数据的访问。它们被最先加入 `iters` 列表，因此优先级最高。
 3.  **L0 `SSTable` 迭代器**: L0 的 `SSTable` 键范围可能重叠，因此必须为**每一个** L0 的 `SSTable` 单独创建一个 `SsTableIterator`。
+
 4.  **L1+ `SSTable` 迭代器**: L1 及以上层级的 `SSTable` 键范围互不重叠。为了优化，可以为**每一层**创建一个 `SstConcatIterator`。`SstConcatIterator` 内部封装了该层所有的 `SSTable`，并能像单个迭代器一样在它们之间无缝移动，避免了为该层每个 `SSTable` 都创建一个独立迭代器的开销。
 5.  **`MergeIterator`**: 这是实现统一视图的关键。`MergeIterator` 接收一个迭代器列表（`iters`），内部使用一个**最小堆**（`std::priority_queue`）来管理它们。每次调用 `Next()`，它总能从所有子迭代器中返回 Key 最小的那个元素。如果 Key 相同，它会优先返回在 `iters` 列表中索引靠前的迭代器（即 `MemTable` > `L0` > `L1`...），从而自然地实现了新数据覆盖旧数据的逻辑。
 6.  **`LsmIterator`**: 最后，`MergeIterator` 被 `LsmIterator` 包装。`LsmIterator` 负责处理上层逻辑：

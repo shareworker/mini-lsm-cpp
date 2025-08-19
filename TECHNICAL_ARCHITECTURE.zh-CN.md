@@ -780,9 +780,9 @@ public:
 ```
 `GenerateCompactionTask` 是所有策略类必须实现的纯虚函数。它负责分析 `LSM-Tree` 的当前状态，并返回一个具体的 `CompactionTask`。
 
-##### b. 分层压缩 (Leveled Compaction)
+##### b. 简单层级压缩 (Simple Leveled Compaction)
 
-这是在 `simple_leveled_compaction_controller.cpp` 中实现的经典策略。
+这是在 `simple_leveled_compaction_controller.cpp` 中实现的策略，是层级压缩的一个简化版本。
 
 **决策逻辑源码 (`simple_leveled_compaction_controller.cpp`)**:
 ```cpp
@@ -819,7 +819,15 @@ CompactionTask SimpleLeveledCompactionController::GenerateCompactionTask(const L
 2.  **L1+ 压缩检查**: 如果 L0 无需压缩，则从 L1 开始遍历每一层。它会比较 `L(i)` 层的总大小和 `L(i+1)` 层的总大小。如果 `Size(L(i)) * N > Size(L(i+1))`（其中 `N` 是 `max_bytes_for_level_base`，通常是 10），说明 `L(i)` 相对于下一层过于“膨胀”，需要将数据推向下一层。
 3.  **选择 SSTable**: 一旦确定某一层需要压缩，`FindSstToCompact` 会从该层选择一个 SSTable（例如，选择最后一个，即键范围最大的那个）。然后生成一个将这个 SSTable 与 `L(i+1)` 中所有键范围重叠的 SSTable 进行合并的任务。
 
-##### c. 分级/大小分级压缩 (Tiered Compaction)
+##### c. 层级压缩 (Leveled Compaction)
+
+这是在 `leveled_compaction_controller.cpp` 中实现的策略，旨在更严格地控制空间放大。
+
+*   **工作原理**: 当某一层 `L` 的总大小超过其目标限制时，会从该层选择一个 SSTable，并将其与下一层 `L+1` 中所有键范围重叠的 SSTable 进行合并。
+*   **优点**: 读放大和空间放大较低。给定键范围的数据很可能位于某个层级的一个 SSTable 中，从而加快读取速度。
+*   **缺点**: 相比分级压缩，写放大较高，因为合并一个来自 `L` 层的小 SSTable 可能会导致 `L+1` 层的大量数据被重写。
+
+##### d. 分级/大小分级压缩 (Tiered Compaction)
 
 这是在 `tiered_compaction_controller.cpp` 中实现的策略。
 
@@ -849,14 +857,14 @@ CompactionTask TieredCompactionController::GenerateCompactionTask(const LsmStora
 2.  **检查触发条件**: 策略会遍历这些 Tiers。如果发现某个 Tier 中的文件数量达到了 `min_merge_width`（最小合并宽度）的阈值，就会触发压缩。
 3.  **生成任务**: 压缩任务会将触发合并的整个 Tier 的**所有** SSTable，与**下一整个 Tier** 的所有 SSTable 合并。这是一个大规模的合并操作，合并后会产生一个或多个新的、更大的 SSTable，这些新的 SSTable 会被放入更高的 Tier 中。
 
-##### d. 策略对比总结
+##### e. 策略对比总结
 
-| 特性 | 分层压缩 (Leveled) | 分级压缩 (Tiered) |
-| :--- | :--- | :--- |
-| **读放大** | **低** | 高 |
-| **写放大** | 高 | **低** |
-| **空间放大** | **低** | 高 |
-| **适用场景** | 读密集型、或对空间敏感的场景 | 写密集型、或存储成本低廉的场景 |
+| 特性 | 简单层级 (Simple Leveled) | 层级 (Leveled) | 分级 (Tiered) |
+| :--- | :--- | :--- | :--- |
+| **读放大** | 低 | **低** | 高 |
+| **写放大** | 中 | 高 | **低** |
+| **空间放大** | 中 | **低** | 高 |
+| **适用场景** | 读写均衡 | 读密集型、或对空间敏感的场景 | 写密集型、或存储成本低廉的场景 |
 
 
 ## 模块四：`MVCC` 与事务 - 实现隔离与并发控制
@@ -1079,3 +1087,28 @@ for (auto iter = merge_iterator; iter->IsValid(); iter->Next()) {
     *   如果一个旧版本的 `ts <= watermark`，则说明它对于任何当前或未来的事务都绝对不可见了。这个版本就是“垃圾”，可以直接被丢弃，无需写入到压缩后产生的新 `SSTable` 中。
 
 通过这种方式，`Compaction` 在优化数据布局的同时，也高效地回收了过时的多版本数据，控制了存储空间的增长。
+
+## 模块五：核心工具
+
+除了核心的存储和并发控制逻辑，`mini-lsm-cpp` 还依赖几个关键的工具组件，这些组件提供了基础服务，如高效的内存管理、文件处理和日志记录。
+
+### 1. ByteBuffer (`byte_buffer.hpp`)
+
+`ByteBuffer` 是实现高效、零拷贝数据处理的基石。它是一个引用计数的、不可变的字节缓冲区。
+
+*   **零拷贝切片 (Zero-Copy Slicing)**: 创建 `ByteBuffer` 的一个切片不会复制底层数据。相反，它会创建一个新的 `ByteBuffer` 视图，该视图指向原始数据的一部分，共享相同的内存缓冲区并更新引用计数。这对于解析密钥、值和块片段非常高效，没有内存分配开销。
+*   **线程安全**: 引用计数是原子的，这使得在多个线程之间共享 `ByteBuffer` 实例是安全的。
+*   **写时复制 (Copy-on-Write)**: 虽然 `ByteBuffer` 本身是不可变的，但它有助于实现写时复制模式。如果需要修改，会创建一份新的、独立的数据副本。
+
+### 2. Logger (`logger.hpp`)
+
+提供了一个灵活的、异步的日志框架，以帮助调试和监控。
+
+*   **级别**: 支持标准日志级别 (DEBUG, INFO, WARNING, ERROR)。
+*   **异步模式**: 默认情况下，日志消息被排队并由一个专用的后台线程写入磁盘，以最小化对存储操作关键路径的影响。
+*   **配置**: 可以配置日志目录、文件大小、轮换和最低日志级别。
+
+### 3. FileObject & Crc32c (`file_object.hpp`, `crc32c.hpp`)
+
+*   **`FileObject`**: 一个围绕文件句柄的简单 RAII (资源获取即初始化) 包装器。它确保文件在超出作用域时被正确关闭，并提供基本的读/创建操作。
+*   **`Crc32c`**: 提供了 CRC32C (Castagnoli) 校验和算法的软件实现。校验和被附加到数据块和 WAL 记录中，以在读取或恢复期间验证数据完整性并检测损坏。

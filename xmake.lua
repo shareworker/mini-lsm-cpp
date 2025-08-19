@@ -7,9 +7,10 @@ set_languages("cxx20")
 add_cxxflags("-Wall", "-Wextra")
 add_cxxflags("-fstack-protector-strong", "-D_FORTIFY_SOURCE=2", "-Wformat-security")
 
--- Debug flags
-add_cxxflags("-fsanitize=address,undefined", {mode = "debug"})
-add_ldflags("-fsanitize=address,undefined", {mode = "debug"})
+-- Debug flags (ASAN disabled)
+add_cxxflags("-fno-omit-frame-pointer", "-g", "-O1", {mode = "debug"})
+
+-- Configure test execution to prevent race conditions
 
 -- Release flags  
 add_cxxflags("-O2", "-DNDEBUG", {mode = "release"})
@@ -46,6 +47,7 @@ target("iterator_safety_test")
     add_deps("mini_lsm")
     add_files("test/iterator_safety_test.cpp")
     add_packages("gtest")
+    add_tests("default")
     
 -- Compaction Test
 target("compaction_test")

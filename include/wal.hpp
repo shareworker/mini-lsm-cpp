@@ -14,7 +14,6 @@
 #include "skiplist.hpp"
 #include "byte_buffer.hpp"
 
-namespace util {
 
 /**
  * @brief Write-Ahead Log (WAL) for durability.
@@ -94,4 +93,3 @@ private:
     std::mutex file_mutex_;
 };
 
-}  // namespace util

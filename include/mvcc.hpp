@@ -19,8 +19,6 @@
 #include "byte_buffer.hpp"
 #include "mvcc_watermark.hpp"
 
-namespace util {
-
 // Forward declarations
 class LsmStorageInner;
 class Transaction;
@@ -172,4 +170,3 @@ private:
     std::map<uint64_t, CommittedTxnData> committed_txns_;
 };
 
-} // namespace util

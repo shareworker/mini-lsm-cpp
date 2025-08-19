@@ -13,7 +13,6 @@
 #include "wal_segment.hpp"
 #include "bound.hpp"
 
-namespace util {
 
 // Forward declarations
 class MemTableIterator;
@@ -231,13 +230,11 @@ public:
     }
 
     ByteBuffer Key() const noexcept override {
-        static const ByteBuffer kEmpty;
-        return IsValid() ? items_[index_].first : kEmpty;
+        return IsValid() ? items_[index_].first : GetEmptyBuffer();
     }
 
     const ByteBuffer &Value() const noexcept override {
-        static const ByteBuffer kEmpty;
-        return IsValid() ? items_[index_].second : kEmpty;
+        return IsValid() ? items_[index_].second : GetEmptyBuffer();
     }
 
 private:
@@ -248,7 +245,11 @@ private:
 
     std::shared_ptr<SkipList<ByteBuffer, ByteBuffer>> map_;
     std::vector<std::pair<ByteBuffer, ByteBuffer>> items_;
-    size_t index_{0};
+    size_t index_;
+    
+    // Static empty buffer shared across all iterator instances
+    static const ByteBuffer& GetEmptyBuffer() {
+        static const ByteBuffer empty_buffer{0};
+        return empty_buffer;
+    }
 };
-
-}  // namespace util

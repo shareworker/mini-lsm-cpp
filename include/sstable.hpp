@@ -8,7 +8,6 @@
 #include "byte_buffer.hpp"
 #include "file_object.hpp"
 
-namespace util {
 
 class BlockCache; // forward
 class BloomFilter; // forward
@@ -74,4 +73,3 @@ private:
     std::vector<uint8_t> last_key_;
 };
 
-}  // namespace util

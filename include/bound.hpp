@@ -3,7 +3,6 @@
 #include <optional>
 #include "byte_buffer.hpp"
 
-namespace util {
 
 // Simple C++ counterpart of Rust's std::ops::Bound.
 class Bound {
@@ -47,4 +46,3 @@ private:
     std::optional<ByteBuffer> key_;
 };
 
-}  // namespace util

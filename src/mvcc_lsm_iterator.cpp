@@ -9,7 +9,6 @@
 #include <vector>
 #include <utility>
 
-namespace util {
 
 MvccLsmIterator MvccLsmIterator::Create(
     std::shared_ptr<MvccMemTable> memtable,
@@ -69,7 +68,7 @@ namespace {
 
 // Helper method to extract the user key from a versioned key
 // Format: [user_key_bytes][8_bytes_timestamp]
-util::ByteBuffer ExtractUserKey(const util::ByteBuffer& versioned_key) {
+ByteBuffer ExtractUserKey(const ByteBuffer& versioned_key) {
     if (versioned_key.Size() < 8) {
         // Not a valid versioned key, return as is
         return versioned_key.Clone();
@@ -90,7 +89,7 @@ util::ByteBuffer ExtractUserKey(const util::ByteBuffer& versioned_key) {
 
 // Helper method to extract the timestamp from a versioned key
 // Format: [user_key_bytes][8_bytes_inverted_timestamp]
-uint64_t ExtractTimestamp(const util::ByteBuffer& versioned_key) {
+uint64_t ExtractTimestamp(const ByteBuffer& versioned_key) {
     if (versioned_key.Size() < 8) {
         // Not a valid versioned key, return max timestamp
         return UINT64_MAX;
@@ -161,8 +160,7 @@ void MvccLsmIterator::Next() noexcept {
 }
 
 ByteBuffer MvccLsmIterator::Key() const noexcept {
-    static const ByteBuffer empty_buffer;
-    if (!IsValid()) return empty_buffer;
+    if (!IsValid()) return empty_buffer_;
     
     // Get the versioned key from the underlying iterator
     ByteBuffer versioned_key = iter_->Key();
@@ -178,8 +176,7 @@ ByteBuffer MvccLsmIterator::Key() const noexcept {
 }
 
 const ByteBuffer& MvccLsmIterator::Value() const noexcept {
-    static const ByteBuffer kEmpty;
-    return IsValid() ? iter_->Value() : kEmpty;
+    return IsValid() ? iter_->Value() : empty_buffer_;
 }
 
 std::vector<std::unique_ptr<StorageIterator>> MvccLsmIterator::CreateComponentIterators(
@@ -238,4 +235,3 @@ std::vector<std::unique_ptr<StorageIterator>> MvccLsmIterator::CreateComponentIt
     return iters;
 }
 
-} // namespace util

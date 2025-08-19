@@ -10,7 +10,6 @@
 #include "../include/mvcc_transaction.hpp"
 #include "../include/mvcc_lsm_storage.hpp"
 
-namespace util {
 
 LsmMvccInner::LsmMvccInner(uint64_t initial_ts)
     : ts_state_{initial_ts, std::make_unique<Watermark>()}, next_ts_(initial_ts) {
@@ -176,4 +175,3 @@ void LsmMvccInner::AddCommittedTransaction(uint64_t commit_ts, CommittedTxnData 
     }
 }
 
-} // namespace util

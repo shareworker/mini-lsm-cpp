@@ -12,17 +12,17 @@ int main() {
     std::filesystem::create_directory(test_path);
     
     // Create simple options
-    util::LsmStorageOptions options;
+    LsmStorageOptions options;
     
     // Try to create an LSM storage instance
-    auto storage = util::LsmStorageInner::Create(test_path, options);
+    auto storage = LsmStorageInner::Create(test_path, options);
     
     if (storage) {
         std::cout << "Successfully created LsmStorageInner instance" << std::endl;
         
         // Test a simple Put operation
-        util::ByteBuffer key("test_key");
-        util::ByteBuffer value("test_value");
+        ByteBuffer key("test_key");
+        ByteBuffer value("test_value");
         
         bool result = storage->Put(key, value);
         

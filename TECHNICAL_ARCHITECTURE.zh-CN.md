@@ -721,9 +721,11 @@ std::unique_ptr<StorageIterator> LsmStorageInner::Scan(const Bound& lower, const
     *   （释放锁后）对旧 `MemTable` 的 `WAL` 调用 `Sync`，确保其所有日志都已落盘。
 3.  **`ForceFlushNextImmMemtable` (`src/lsm_storage.cpp`)**: 这个函数通常由一个后台线程调用，负责处理 `imm_memtables` 列表。
     *   获取列表中最老的一个 `MemTable`（位于列表末尾）。
-    *   调用 `BuildSstFromMemtable`，使用 `SsTableBuilder` 将该 `MemTable` 的内容转换并写入一个新的 `.sst` 文件（ID 与 `MemTable` 相同）。
-    *   再次使用 Copy-on-Write 模式更新 `LsmStorageState`：从 `imm_memtables` 移除已处理的 `MemTable`，并将新的 `SSTable` ID 添加到 `l0_sstables` 列表的头部。
-    *   向 `MANIFEST` 文件追加一条 `Flush` 记录。
+    *   调用 `BuildSstFromMemtable`，使用 `SsTableBuilder` 将该 `MemTable` 的内容转换为一个新的 `SSTable`。一个重要的优化是：如果 `MemTable` 为空（例如，其中所有的写操作都被后续的删除操作抵消了），`BuildSstFromMemtable` 将不会创建任何 `.sst` 文件。
+    *   再次使用 Copy-on-Write 模式更新 `LsmStorageState`：
+        *   从 `imm_memtables` 移除已处理的 `MemTable`。
+        *   如果成功创建了新的 `SSTable`，则将其 ID 添加到 `l0_sstables` 列表的头部。
+    *   如果生成了新的 `SSTable`，则向 `MANIFEST` 文件追加一条 `Flush` 记录。
 
 #### 3.4. `Compaction` 流程: 后台优化
 

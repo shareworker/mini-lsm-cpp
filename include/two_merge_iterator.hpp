@@ -5,7 +5,6 @@
 
 #include "storage_iterator.hpp"
 
-namespace util {
 
 /**
  * @brief Merge two sorted forward iterators into a single stream.
@@ -75,4 +74,3 @@ private:
     bool choose_a_{false};
 };
 
-}  // namespace util

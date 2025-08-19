@@ -6,8 +6,6 @@
 
 #include "compaction_controller.hpp"
 
-namespace util {
-
 // Leveled compaction task
 struct LeveledCompactionTask {
     // If upper_level is std::nullopt, then it is L0 compaction
@@ -68,4 +66,3 @@ private:
     LeveledCompactionOptions options_;
 };
 
-} // namespace util

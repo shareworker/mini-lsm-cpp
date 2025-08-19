@@ -8,7 +8,6 @@
 #include <stdexcept>
 #include <system_error>
 
-namespace util {
 
 namespace {
 inline int OpenRO(const std::string& path) {
@@ -104,4 +103,3 @@ std::vector<uint8_t> FileObject::Read(uint64_t offset, uint64_t len) const {
 bool FileObject::Valid() const noexcept { return impl_ != nullptr; }
 uint64_t FileObject::Size() const noexcept { return Valid() ? impl_->size : 0; }
 
-}  // namespace util

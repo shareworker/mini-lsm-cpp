@@ -15,7 +15,6 @@
 #include "../include/sstable.hpp"
 #include "../include/file_object.hpp"
 
-using namespace util;
 
 class CompactionTest : public ::testing::Test {
 protected:

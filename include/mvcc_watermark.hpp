@@ -10,7 +10,6 @@
 #include <map>
 #include <optional>
 
-namespace util {
 
 /**
  * @brief Watermark tracking for MVCC garbage collection
@@ -51,4 +50,3 @@ private:
     std::map<uint64_t, size_t> readers_;
 };
 
-} // namespace util

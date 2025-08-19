@@ -11,7 +11,6 @@
 #include "byte_buffer.hpp"
 #include "lsm_storage.hpp"
 
-namespace util {
 
 /**
  * @brief High-level wrapper of `LsmStorageInner`, mirroring Rust `MiniLsm`.
@@ -79,4 +78,3 @@ private:
     std::atomic<bool> shutting_down_{false};
 };
 
-} // namespace util

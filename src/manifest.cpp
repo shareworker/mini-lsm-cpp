@@ -13,7 +13,6 @@
 #include <filesystem>
 #include <endian.h>
 
-namespace util {
 
 std::unique_ptr<Manifest> Manifest::Create(const std::filesystem::path& path) {
     return std::unique_ptr<Manifest>(new Manifest(path, true));
@@ -272,4 +271,3 @@ bool Manifest::AddRecord(const ManifestRecord& rec) {
     }
 }
 
-} // namespace util

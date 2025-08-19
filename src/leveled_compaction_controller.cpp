@@ -11,7 +11,6 @@
 #include "../include/lsm_storage.hpp"
 #include "../include/sstable.hpp"
 
-namespace util {
 
 LeveledCompactionController::LeveledCompactionController(
     const std::shared_ptr<LsmStorageOptions>& options)
@@ -347,4 +346,3 @@ size_t LeveledCompactionController::GetMaxLevelSize(size_t level) const {
            std::pow(options_.level_size_multiplier, level);
 }
 
-} // namespace util

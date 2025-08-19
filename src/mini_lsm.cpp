@@ -5,7 +5,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-namespace util {
 
 /* static */ MiniLsm::Ptr MiniLsm::Open(const std::filesystem::path& path,
                                        const LsmStorageOptions& opts) {
@@ -120,4 +119,3 @@ bool MiniLsm::Close() {
 
 // SyncDir implementation moved to lsm_storage.cpp to avoid duplicate definition
 
-} // namespace util

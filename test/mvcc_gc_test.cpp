@@ -8,14 +8,21 @@
 #include "../include/mvcc_transaction.hpp"
 #include "../include/mvcc_lsm_storage.hpp"
 
-namespace util {
 
 class MvccGcTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Create a unique temporary directory for each test
+        // Create a unique temporary directory for each test with better uniqueness
+        const ::testing::TestInfo* test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+        auto now = std::chrono::high_resolution_clock::now();
+        auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+        
         test_dir_ = std::filesystem::temp_directory_path() / 
-                   ("mvcc_gc_test_" + std::to_string(std::rand()));
+                   ("mvcc_gc_test_" + std::to_string(nanoseconds) + "_" + 
+                    test_info->test_suite_name() + "_" + test_info->name());
+        
+        // Ensure clean state
+        std::filesystem::remove_all(test_dir_);
         std::filesystem::create_directories(test_dir_);
         
         // Create the MVCC LSM storage
@@ -23,23 +30,34 @@ protected:
         options.target_sst_size = 1024;  // Small SST size to trigger frequent compactions
         options.block_size = 128;        // Small block size for testing
         
-        mvcc_lsm_ = util::MiniLsmMvcc::Create(options, test_dir_);
+        mvcc_lsm_ = MiniLsmMvcc::Create(options, test_dir_);
         ASSERT_NE(mvcc_lsm_, nullptr);
     }
 
     void TearDown() override {
         if (mvcc_lsm_) {
-            mvcc_lsm_->Close();
+            try {
+                mvcc_lsm_->Close();
+            } catch (...) {
+                // Ignore close errors during cleanup
+            }
             mvcc_lsm_.reset();
         }
         
-        // Clean up the test directory
-        std::error_code ec;
-        std::filesystem::remove_all(test_dir_, ec);
+        // Clean up the test directory with retry mechanism
+        for (int retry = 0; retry < 3; ++retry) {
+            std::error_code ec;
+            std::filesystem::remove_all(test_dir_, ec);
+            if (!ec) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        
+        // Small delay to ensure file system operations complete
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     std::filesystem::path test_dir_;
-    std::unique_ptr<util::MiniLsmMvcc> mvcc_lsm_;
+    std::unique_ptr<MiniLsmMvcc> mvcc_lsm_;
 };
 
 TEST_F(MvccGcTest, BasicGarbageCollection) {
@@ -223,7 +241,6 @@ TEST_F(MvccGcTest, MultipleKeysGarbageCollection) {
     }
 }
 
-} // namespace util
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

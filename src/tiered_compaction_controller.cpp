@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace util {
 
 TieredCompactionController::TieredCompactionController(
     const std::shared_ptr<LsmStorageOptions>& options)
@@ -211,13 +210,17 @@ TieredCompactionController::GenerateTieredTask(const LsmStorageState& state) con
               [](const auto& a, const auto& b) { return a.first < b.first; });
     
     // Calculate size of all tiers except the bottom one
-    for (size_t i = 0; i < levels_vec.size() - 1; ++i) {
-        size_except_bottom += levels_vec[i].second.size();
+    if (levels_vec.size() > 1) {
+        for (size_t i = 0; i < levels_vec.size() - 1; ++i) {
+            size_except_bottom += levels_vec[i].second.size();
+        }
     }
     
     // Calculate size of the bottom tier
     if (!levels_vec.empty()) {
         bottom_size = levels_vec.back().second.size();
+    } else {
+        return std::nullopt;  // No levels to compact
     }
     
     // Calculate space amplification ratio
@@ -241,33 +244,46 @@ TieredCompactionController::GenerateTieredTask(const LsmStorageState& state) con
     double size_ratio_trigger = (100.0 + options_.size_ratio) / 100.0;
     size_t size_so_far = 0;
     
-    for (size_t i = 0; i < levels_vec.size() - 1; ++i) {
-        size_so_far += levels_vec[i].second.size();
-        size_t next_level_size = levels_vec[i + 1].second.size();
-        
-        double current_size_ratio = 0.0;
-        if (size_so_far > 0) {
-            current_size_ratio = static_cast<double>(next_level_size) / size_so_far;
-        }
-        
-        if (current_size_ratio > size_ratio_trigger && i + 1 >= options_.min_merge_width) {
-            std::cout << "compaction triggered by size ratio: " 
-                      << current_size_ratio * 100.0 << "% > " 
-                      << size_ratio_trigger * 100.0 << "%" << std::endl;
+    if (levels_vec.size() > 1) {
+        for (size_t i = 0; i < levels_vec.size() - 1; ++i) {
+            size_so_far += levels_vec[i].second.size();
+            size_t next_level_size = levels_vec[i + 1].second.size();
             
-            return TieredCompactionTask{
-                .tiers = std::vector<std::pair<size_t, std::vector<size_t>>>(
-                    levels_vec.begin(), levels_vec.begin() + i + 1),
-                .bottom_tier_included = (i + 1 >= levels_vec.size())
-            };
+            double current_size_ratio = 0.0;
+            if (size_so_far > 0) {
+                current_size_ratio = static_cast<double>(next_level_size) / size_so_far;
+            }
+            
+            if (current_size_ratio > size_ratio_trigger && i + 1 >= options_.min_merge_width) {
+                std::cout << "compaction triggered by size ratio: " 
+                          << current_size_ratio * 100.0 << "% > " 
+                          << size_ratio_trigger * 100.0 << "%" << std::endl;
+                
+                // Ensure we don't go out of bounds
+                size_t end_idx = std::min(i + 1, levels_vec.size());
+                return TieredCompactionTask{
+                    .tiers = std::vector<std::pair<size_t, std::vector<size_t>>>(
+                        levels_vec.begin(), levels_vec.begin() + end_idx),
+                    .bottom_tier_included = (end_idx >= levels_vec.size())
+                };
+            }
         }
     }
     
     // Trying to reduce sorted runs without respecting size ratio
+    if (levels_vec.empty()) {
+        return std::nullopt;
+    }
+    
     size_t num_tiers_to_take = std::min(
         levels_vec.size(),
         options_.max_merge_width.value_or(std::numeric_limits<size_t>::max())
     );
+    
+    // Ensure num_tiers_to_take is valid
+    if (num_tiers_to_take == 0 || num_tiers_to_take > levels_vec.size()) {
+        return std::nullopt;
+    }
     
     std::cout << "compaction triggered by reducing sorted runs" << std::endl;
     
@@ -320,4 +336,3 @@ TieredCompactionController::ApplyCompactionResult(
     return {std::move(new_state), files_to_remove};
 }
 
-} // namespace util

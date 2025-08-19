@@ -12,7 +12,6 @@
 #include <vector>
 #include <zlib.h>  // crc32
 
-namespace util {
 
 class BloomFilter {
 public:
@@ -102,4 +101,3 @@ private:
     uint8_t k_{};
 };
 
-}  // namespace util

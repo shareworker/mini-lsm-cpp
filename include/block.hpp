@@ -7,7 +7,6 @@
 #include <stdexcept>
 #include "byte_buffer.hpp"
 
-namespace util {
 
 // Size of an unsigned 16-bit integer in bytes.
 inline constexpr size_t kSizeOfU16 = 2;
@@ -158,4 +157,3 @@ private:
     ByteBuffer first_key_;
 };
 
-}  // namespace util

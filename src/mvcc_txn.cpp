@@ -13,7 +13,7 @@ namespace {
      * @brief Encodes a key with timestamp for versioned storage
      * Format: <user_key><timestamp> where timestamp is 8 bytes big-endian
      */
-    util::ByteBuffer EncodeKeyWithTs(const util::ByteBuffer& key, uint64_t ts) {
+    ByteBuffer EncodeKeyWithTs(const ByteBuffer& key, uint64_t ts) {
         std::vector<uint8_t> encoded_data;
         encoded_data.reserve(key.Size() + sizeof(uint64_t));
         
@@ -25,7 +25,7 @@ namespace {
             encoded_data.push_back(static_cast<uint8_t>((ts >> (i * 8)) & 0xFF));
         }
         
-        return util::ByteBuffer(encoded_data.data(), encoded_data.size());
+        return ByteBuffer(encoded_data.data(), encoded_data.size());
     }
 
     /**
@@ -34,16 +34,16 @@ namespace {
      * @param versioned_key The versioned key (user_key + 8-byte timestamp)
      * @return std::pair<ByteBuffer, uint64_t> User key and timestamp
      */
-    [[maybe_unused]] std::pair<util::ByteBuffer, uint64_t> DecodeKeyWithTs(const util::ByteBuffer& versioned_key) {
+    [[maybe_unused]] std::pair<ByteBuffer, uint64_t> DecodeKeyWithTs(const ByteBuffer& versioned_key) {
         if (versioned_key.Size() < sizeof(uint64_t)) {
             // Invalid versioned key, return empty key and 0 timestamp
-            return {util::ByteBuffer{}, 0};
+            return {ByteBuffer{}, 0};
         }
         
         size_t user_key_size = versioned_key.Size() - sizeof(uint64_t);
         
         // Extract user key (first part)
-        util::ByteBuffer user_key(versioned_key.Data(), user_key_size);
+        ByteBuffer user_key(versioned_key.Data(), user_key_size);
         
         // Extract timestamp (last 8 bytes, big-endian)
         const uint8_t* ts_data = reinterpret_cast<const uint8_t*>(versioned_key.Data()) + user_key_size;
@@ -62,7 +62,7 @@ namespace {
      * @param user_key The user key to match against
      * @return bool True if the versioned key contains the user key
      */
-    [[maybe_unused]] bool VersionedKeyMatches(const util::ByteBuffer& versioned_key, const util::ByteBuffer& user_key) {
+    [[maybe_unused]] bool VersionedKeyMatches(const ByteBuffer& versioned_key, const ByteBuffer& user_key) {
         if (versioned_key.Size() < user_key.Size() + sizeof(uint64_t)) {
             return false;
         }
@@ -72,7 +72,6 @@ namespace {
     }
 }
 
-namespace util {
 
 // --- Transaction ---
 
@@ -292,4 +291,3 @@ const ByteBuffer& TxnIterator::Value() const noexcept {
     return iter_->Value();
 }
 
-}  // namespace util

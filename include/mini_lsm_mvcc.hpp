@@ -15,7 +15,6 @@
 #include "mvcc_txn.hpp"
 #include "mvcc_transaction.hpp"
 
-namespace util {
 
 /**
  * @brief MVCC-enabled MiniLsm wrapper
@@ -89,4 +88,3 @@ private:
     std::shared_ptr<LsmMvccInner> mvcc_;
 };
 
-} // namespace util

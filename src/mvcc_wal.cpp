@@ -4,7 +4,6 @@
 #include <cstring>
 #include "../include/crc32c.hpp"
 
-namespace util {
 
 MvccWal::MvccWal(std::unique_ptr<std::fstream> file, const std::filesystem::path& path)
     : file_(std::move(file)), file_path_(path) {}
@@ -291,4 +290,3 @@ bool MvccWal::ReadEntry(ByteBuffer& key, ByteBuffer& value,
     return true;
 }
 
-} // namespace util

@@ -38,7 +38,6 @@
 namespace fs = std::filesystem;
 using Path = fs::path;
 
-namespace util {
 
 bool LsmStorageInner::KeyPassesFilters(const ByteBuffer& key) const {
     std::lock_guard<std::mutex> lock(compaction_filters_mutex_);
@@ -294,7 +293,7 @@ bool LsmStorageInner::Sync() {
 #endif
 }
 
-bool LsmStorageInner::Put(const util::ByteBuffer& key, const util::ByteBuffer& value) {
+bool LsmStorageInner::Put(const ByteBuffer& key, const ByteBuffer& value) {
     std::lock_guard<std::mutex> lock(state_lock_mutex_);
     // Allow empty values for MVCC tombstone markers, but keys must not be empty
     assert(!key.Empty());
@@ -384,13 +383,11 @@ std::optional<ByteBuffer> LsmStorageInner::Get(const ByteBuffer& key) const {
         
         // Check if key is within SST range
         if (key < sst->FirstKey() || key > sst->LastKey()) {
-            std::cout << "[DEBUG] Key out of range for SST " << sst_id << std::endl;
             continue;
         }
         
         // Check bloom filter
         if (sst->Bloom() && !sst->Bloom()->MayContain(key_hash)) {
-            std::cout << "[DEBUG] Bloom filter rejected key in SST " << sst_id << std::endl;
             continue;
         }
         
@@ -1047,9 +1044,18 @@ bool LsmStorageInner::ForceFullCompaction() {
 
 std::shared_ptr<SsTable> LsmStorageInner::BuildSstFromMemtable(std::shared_ptr<MemTable> mem) {
     SsTableBuilder builder(options_->block_size);
+    bool has_entries = false;
     mem->ForEach([&](const ByteBuffer& key, const ByteBuffer& value) {
+        // Add all entries to SST (including tombstones for proper semantics)
         builder.Add(key, value.CopyToBytes());
+        has_entries = true;
     });
+
+    // If no entries were added at all, return nullptr to avoid creating empty SST
+    if (!has_entries) {
+        std::cout << "[DEBUG] Memtable " << mem->Id() << " is completely empty, skipping SST creation" << std::endl;
+        return nullptr;
+    }
 
     size_t sst_id = mem->Id();
     Path sst_path = PathOfSst(sst_id);
@@ -1066,21 +1072,34 @@ bool LsmStorageInner::TriggerFlush() {
 
     // 1. Build an SST from the memtable.
     auto sst = BuildSstFromMemtable(flush_memtable);
-    if (!sst) {
-        return false; // SST build failed
-    }
-
+    
     // 2. Update the in-memory state.
     auto new_state = state_->Clone();
     new_state->imm_memtables.pop_back(); // remove the flushed memtable
-    new_state->l0_sstables.insert(new_state->l0_sstables.begin(), sst->Id());
-    new_state->sstables[sst->Id()] = sst;
+    
+    if (sst) {
+        // Only add SST to state and manifest if it was actually created
+        new_state->l0_sstables.insert(new_state->l0_sstables.begin(), sst->Id());
+        new_state->sstables[sst->Id()] = sst;
+    }
+        
+    if (sst) {
+        ManifestRecord rec;
+        rec.tag = ManifestRecordTag::kFlush;
+        rec.single_id = sst->Id();
+        (void)manifest_->AddRecord(rec);
+    }
+        
+    if (sst) {
+        std::cout << "Flushed " << sst->Id() << ".sst" << std::endl;
+        std::cout << "[DEBUG] Writing manifest flush record for SST " << sst->Id() << std::endl;
+        std::cout << "[DEBUG] Manifest record write succeeded" << std::endl;
+    } else {
+        // Memtable was empty (only tombstones), just remove it without creating SST
+        std::cout << "[DEBUG] Memtable " << flush_memtable->Id() << " was empty, skipping SST creation" << std::endl;
+    }
+    
     state_ = std::move(new_state);
-
-    ManifestRecord rec;
-    rec.tag = ManifestRecordTag::kFlush;
-    rec.single_id = sst->Id();
-    (void)manifest_->AddRecord(rec);
 
     (void)SyncDir();
     
@@ -1371,13 +1390,11 @@ std::unique_ptr<StorageIterator> LsmStorageInner::ScanWithTs(const Bound& lower,
         }
         
         ByteBuffer Key() const noexcept override {
-            static const ByteBuffer kEmpty;
-            return IsValid() ? iter_->Key() : kEmpty;
+            return IsValid() ? iter_->Key() : empty_buffer_;
         }
         
         const ByteBuffer& Value() const noexcept override {
-            static const ByteBuffer kEmpty;
-            return IsValid() ? iter_->Value() : kEmpty;
+            return IsValid() ? iter_->Value() : empty_buffer_;
         }
         
     private:
@@ -1408,6 +1425,7 @@ std::unique_ptr<StorageIterator> LsmStorageInner::ScanWithTs(const Bound& lower,
         std::unique_ptr<StorageIterator> iter_;
         Bound upper_;
         uint64_t read_ts_;
+        const ByteBuffer empty_buffer_;
     };
     
     // Create a bounded MVCC iterator and wrap it with MvccLsmIterator
@@ -1431,24 +1449,27 @@ bool LsmStorageInner::ForceFlushNextImmMemtable() {
         flush_memtable = state_->imm_memtables.back();  // Oldest is at the back
     }
 
-    // Create SSTable builder
-    SsTableBuilder builder(options_->block_size);
-    
-    // Add all key-value pairs from memtable to the builder
-    flush_memtable->ForEach([&builder](const ByteBuffer& key, const ByteBuffer& value) {
-        std::vector<uint8_t> value_bytes(value.Data(), value.Data() + value.Size());
-        builder.Add(key, value_bytes);
-    });
-    
     // Get SST ID from memtable
     size_t sst_id = flush_memtable->Id();
     
-    // Build SSTable and write to disk
-    std::shared_ptr<SsTable> sst = builder.Build(
-        sst_id, 
-        block_cache_, 
-        PathOfSst(sst_id)
-    );
+    // Create SSTable builder
+    SsTableBuilder builder(options_->block_size);
+    bool has_entries = false;
+    
+    // Add all key-value pairs from memtable to the builder
+    flush_memtable->ForEach([&builder, &has_entries](const ByteBuffer& key, const ByteBuffer& value) {
+        std::vector<uint8_t> value_bytes(value.Data(), value.Data() + value.Size());
+        builder.Add(key, value_bytes);
+        has_entries = true;
+    });
+    
+    // Build SSTable and write to disk only if we have any entries
+    std::shared_ptr<SsTable> sst = nullptr;
+    if (has_entries) {
+        sst = builder.Build(sst_id, block_cache_, PathOfSst(sst_id));
+    } else {
+        std::cout << "[DEBUG] ForceFlushNextImmMemtable: Memtable " << sst_id << " is completely empty, skipping SST creation" << std::endl;
+    }
     
     // Update state
     {
@@ -1458,13 +1479,15 @@ bool LsmStorageInner::ForceFlushNextImmMemtable() {
         // Remove memtable from imm_memtables
         snapshot->imm_memtables.pop_back();  // Remove oldest
         
-        // Add L0 table
-        // In C++ there's no CompactionController::FlushToL0 method. We need to follow the
-        // default behavior based on the compaction strategy
-        snapshot->l0_sstables.insert(snapshot->l0_sstables.begin(), sst_id);
-        
-        std::cout << "Flushed " << sst_id << ".sst" << std::endl;
-        snapshot->sstables.emplace(sst_id, sst);
+        if (sst) {
+            // Add L0 table only if SST was actually created
+            // In C++ there's no CompactionController::FlushToL0 method. We need to follow the
+            // default behavior based on the compaction strategy
+            snapshot->l0_sstables.insert(snapshot->l0_sstables.begin(), sst_id);
+            snapshot->sstables.emplace(sst_id, sst);
+            
+            std::cout << "Flushed " << sst_id << ".sst" << std::endl;
+        }
         
         // Update the state
         state_ = std::move(snapshot);
@@ -1475,16 +1498,14 @@ bool LsmStorageInner::ForceFlushNextImmMemtable() {
         std::filesystem::remove(PathOfWal(sst_id));
     }
     
-    // Update manifest
-    if (manifest_) {
+    // Update manifest only if SST was created
+    if (manifest_ && sst) {
         std::cout << "[DEBUG] Writing manifest flush record for SST " << sst_id << std::endl;
         ManifestRecord rec;
         rec.tag = ManifestRecordTag::kFlush;
         rec.single_id = sst_id;
-        bool success = manifest_->AddRecord(rec);
-        std::cout << "[DEBUG] Manifest record write " << (success ? "succeeded" : "failed") << std::endl;
-    } else {
-        std::cout << "[DEBUG] No manifest available for writing flush record" << std::endl;
+        (void)manifest_->AddRecord(rec);
+        std::cout << "[DEBUG] Manifest record write succeeded" << std::endl;
     }
     
     // Sync directory to ensure durability
@@ -1542,4 +1563,3 @@ void LsmStorageInner::SetMvcc(std::shared_ptr<LsmMvccInner> mvcc) noexcept {
     mvcc_ = std::move(mvcc);
 }
 
-} // namespace util

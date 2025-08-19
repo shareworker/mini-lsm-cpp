@@ -7,7 +7,6 @@
 #include "options.hpp"
 #include "compaction.hpp"
 
-namespace util {
 
 // Forward declarations
 class LsmStorageState;
@@ -36,4 +35,3 @@ public:
             size_t& max_sst_id) = 0;
 };
 
-} // namespace util

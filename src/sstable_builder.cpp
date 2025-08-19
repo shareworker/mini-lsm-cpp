@@ -9,7 +9,6 @@
 #include <iostream>
 #include <system_error>
 
-namespace util {
 
 namespace {
 inline void PutU32LE(std::vector<uint8_t>& buf, uint32_t v) {
@@ -37,6 +36,11 @@ std::shared_ptr<SsTable> SsTableBuilder::Build(size_t id,
     // Flush the current block if it has pending entries.
     if (!builder_.IsEmpty()) {
         FinishBlock();
+    }
+
+    // Safety check: Prevent creating empty or invalid SST files
+    if (meta_.empty()) {
+        return nullptr;
     }
 
     // 1. Move the accumulated raw data out so that we can continue appending.
@@ -80,4 +84,3 @@ std::shared_ptr<SsTable> SsTableBuilder::Build(size_t id,
     return SsTable::Open(id, std::move(block_cache), std::move(file));
 }
 
-}  // namespace util

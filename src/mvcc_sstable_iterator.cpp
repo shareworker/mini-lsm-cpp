@@ -4,7 +4,6 @@
 #include <utility>
 #include <cstdint>
 
-namespace util {
 
 MvccSsTableIterator MvccSsTableIterator::Create(
     std::shared_ptr<SsTable> sstable,
@@ -76,13 +75,11 @@ void MvccSsTableIterator::Next() noexcept {
 }
 
 ByteBuffer MvccSsTableIterator::Key() const noexcept {
-    static const ByteBuffer kEmpty;
-    return IsValid() ? current_key_ : kEmpty;
+    return IsValid() ? current_key_ : empty_buffer_;
 }
 
 const ByteBuffer& MvccSsTableIterator::Value() const noexcept {
-    static const ByteBuffer kEmpty;
-    return IsValid() ? current_value_ : kEmpty;
+    return IsValid() ? current_value_ : empty_buffer_;
 }
 
 KeyTs MvccSsTableIterator::ExtractKeyTs(const ByteBuffer& raw_key) const {
@@ -233,4 +230,3 @@ uint64_t MvccSsTableIterator::Timestamp() const noexcept {
     return key_ts.Timestamp();
 }
 
-} // namespace util

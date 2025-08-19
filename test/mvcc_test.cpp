@@ -11,14 +11,18 @@
 
 #include "test_util.hpp"
 
-namespace util {
 namespace test {
 
 class MvccTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Create a temporary directory for testing
-        test_dir_ = CreateTestDir();
+        // Create a temporary directory for testing with test-specific naming
+        const ::testing::TestInfo* test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+        test_dir_ = CreateTestDir() + "_" + test_info->test_suite_name() + "_" + test_info->name();
+        
+        // Ensure directory is completely clean
+        std::filesystem::remove_all(test_dir_);
+        std::filesystem::create_directories(test_dir_);
         
         // Create options with WAL enabled
         MiniLsmMvcc::Options options;
@@ -29,11 +33,25 @@ protected:
     }
 
     void TearDown() override {
-        // Close and cleanup
+        // Close and cleanup thoroughly
         if (mvcc_lsm_) {
-            mvcc_lsm_->Close();
+            try {
+                mvcc_lsm_->Close();
+            } catch (...) {
+                // Ignore close errors during cleanup
+            }
+            mvcc_lsm_.reset();
         }
-        RemoveTestDir(test_dir_);
+        
+        // Force cleanup of test directory
+        try {
+            std::filesystem::remove_all(test_dir_);
+        } catch (...) {
+            // Ignore cleanup errors
+        }
+        
+        // Small delay to ensure file system operations complete
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     std::string test_dir_;
@@ -275,7 +293,6 @@ TEST_F(MvccTest, TransactionScan) {
 }
 
 } // namespace test
-} // namespace util
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

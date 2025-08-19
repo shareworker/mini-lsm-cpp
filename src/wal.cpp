@@ -21,7 +21,6 @@
 #include <fcntl.h>   // for open/close
 #endif
 
-namespace util {
 
 namespace {
 
@@ -30,10 +29,10 @@ uint32_t CalculateChecksum(const std::vector<uint8_t>& data) {
     // Make sure tables are initialized
     static bool initialized = false;
     if (!initialized) {
-        util::Crc32c::Initialize();
+        Crc32c::Initialize();
         initialized = true;
     }
-    return util::Crc32c::Compute(data);
+    return Crc32c::Compute(data);
 }
 
 // Utility functions for byte manipulation
@@ -355,4 +354,3 @@ bool Wal::Sync() {
     }
 }
 
-}  // namespace util

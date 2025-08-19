@@ -21,8 +21,6 @@
 
 using Path = std::filesystem::path;
 
-namespace util {
-
 // Forward declarations
 class SsTable;
 class Manifest;
@@ -429,4 +427,3 @@ private:
 
 
 
-} // namespace util

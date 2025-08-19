@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace util {
 
 // Static variable initialization
 std::array<uint32_t, 256> Crc32c::table0_ = {};
@@ -79,4 +78,3 @@ uint32_t Crc32c::Compute(const std::vector<uint8_t>& data) {
     return Compute(data.data(), data.size());
 }
 
-}  // namespace util

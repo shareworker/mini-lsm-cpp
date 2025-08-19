@@ -8,7 +8,6 @@
 
 #include "byte_buffer.hpp"
 
-namespace util {
 
 /**
  * @brief Manifest for managing LSM tree metadata
@@ -136,4 +135,3 @@ private:
 
 };
 
-} // namespace util

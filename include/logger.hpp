@@ -17,8 +17,7 @@
 #include <cstdarg>
 #include <cstdio>
 
-namespace util {
-namespace log {
+namespace logger {
 
 enum class Level {
     DEBUG,
@@ -245,17 +244,16 @@ private:
     std::atomic<bool> stop_flag_;
 };
 
-} // namespace log
-} // namespace util
+} // namespace logger
 
 #define LOG_DEBUG(fmt, ...) \
-    util::log::Logger::instance().log(util::log::Level::DEBUG, __FILE__, __FUNCTION__, __LINE__, fmt, ## __VA_ARGS__)
+    logger::Logger::instance().log(logger::Level::DEBUG, __FILE__, __FUNCTION__, __LINE__, fmt, ## __VA_ARGS__)
 
 #define LOG_INFO(fmt, ...) \
-    util::log::Logger::instance().log(util::log::Level::INFO, __FILE__, __FUNCTION__, __LINE__, fmt, ## __VA_ARGS__)
+    logger::Logger::instance().log(logger::Level::INFO, __FILE__, __FUNCTION__, __LINE__, fmt, ## __VA_ARGS__)
 
 #define LOG_WARNING(fmt, ...) \
-    util::log::Logger::instance().log(util::log::Level::WARNING, __FILE__, __FUNCTION__, __LINE__, fmt, ## __VA_ARGS__)
+    logger::Logger::instance().log(logger::Level::WARNING, __FILE__, __FUNCTION__, __LINE__, fmt, ## __VA_ARGS__)
 
 #define LOG_ERROR(fmt, ...) \
-    util::log::Logger::instance().log(util::log::Level::ERROR, __FILE__, __FUNCTION__, __LINE__, fmt, ## __VA_ARGS__)
+    logger::Logger::instance().log(logger::Level::ERROR, __FILE__, __FUNCTION__, __LINE__, fmt, ## __VA_ARGS__)

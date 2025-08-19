@@ -11,7 +11,6 @@
 #include <atomic>
 #include <cassert>
 
-namespace util {
 
 /**
  * @brief A lock-free concurrent skiplist implementation inspired by Crossbeam's skiplist in Rust.
@@ -231,7 +230,12 @@ public:
             std::vector<NodePtr> successors(kMaxLevel, nullptr);
             
             if (FindNode(key, predecessors, successors)) {
-                // Key already exists
+                // Key already exists - update the value (upsert behavior)
+                NodePtr existing_node = successors[0];
+                if (existing_node) {
+                    existing_node->value = value;
+                    return true;
+                }
                 return false;
             }
             
@@ -501,4 +505,3 @@ public:
 
 
 
-} // namespace util

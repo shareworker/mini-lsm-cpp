@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-namespace util {
 
 /**
  * @brief Simple RAII wrapper over a POSIX file used by SsTable.
@@ -59,4 +58,3 @@ private:
     std::shared_ptr<struct FileObjectImpl> impl_;
 };
 
-}  // namespace util

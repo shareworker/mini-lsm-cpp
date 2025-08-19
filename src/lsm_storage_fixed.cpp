@@ -3,7 +3,6 @@
 #include "../include/lsm_storage.hpp"
 #include "sstable_builder.hpp"
 
-namespace util {
 
 bool LsmStorageInner::ForceFlushNextImmMemtable() {
     std::lock_guard<std::mutex> state_lock(state_lock_mutex_);
@@ -119,4 +118,3 @@ bool LsmStorageInner::Flush() {
     return true;
 }
 
-} // namespace util

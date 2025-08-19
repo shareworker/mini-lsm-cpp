@@ -8,7 +8,6 @@
 #include <vector>
 #include <utility>
 
-namespace util {
 
 std::unique_ptr<MvccLsmStorage> MvccLsmStorage::Create(
     const LsmStorageOptions& options, 
@@ -669,4 +668,3 @@ size_t MvccLsmStorage::PerformWatermarkAwareCompaction(uint64_t watermark) {
     return removed_versions;
 }
 
-} // namespace util

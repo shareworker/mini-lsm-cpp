@@ -5,7 +5,6 @@
 #include "storage_iterator.hpp"
 #include "byte_buffer.hpp"
 
-namespace util {
 
 /**
  * @brief MVCC-aware two-way merge iterator for versioned key-value storage.
@@ -81,6 +80,6 @@ private:
     int current_{0};  // 0: invalid, 1: iter1, 2: iter2
     ByteBuffer last_key_;  // Last returned key to avoid duplicates
     bool has_last_key_{false};
+    ByteBuffer empty_buffer_;
 };
 
-} // namespace util

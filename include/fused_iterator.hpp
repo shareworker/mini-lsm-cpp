@@ -3,7 +3,6 @@
 #include "storage_iterator.hpp"
 #include "byte_buffer.hpp"
 
-namespace util {
 
 /**
  * @brief FusedIterator provides enhanced safety guarantees for storage iterators
@@ -36,7 +35,16 @@ public:
      * @return true if iterator is positioned at a valid entry, false otherwise
      */
     bool IsValid() const noexcept final override {
-        return is_fused_ ? false : IsValidImpl();
+        if (is_fused_) {
+            return false;
+        }
+        
+        bool valid = IsValidImpl();
+        if (!valid) {
+            // Mark as fused when becoming invalid
+            is_fused_ = true;
+        }
+        return valid;
     }
 
     /**
@@ -49,8 +57,7 @@ public:
      */
     ByteBuffer Key() const noexcept final override {
         if (is_fused_ || !IsValidImpl()) {
-            static const ByteBuffer kEmpty;
-            return kEmpty;
+            return empty_buffer_;
         }
         return KeyImpl();
     }
@@ -65,8 +72,7 @@ public:
      */
     const ByteBuffer& Value() const noexcept final override {
         if (is_fused_ || !IsValidImpl()) {
-            static const ByteBuffer kEmpty;
-            return kEmpty;
+            return empty_buffer_;
         }
         return ValueImpl();
     }
@@ -156,6 +162,7 @@ protected:
 private:
     mutable bool is_fused_ = false;
     mutable size_t safety_violation_count_ = 0;
+    ByteBuffer empty_buffer_;
     
     void RecordSafetyViolation() const noexcept {
         ++safety_violation_count_;
@@ -188,8 +195,7 @@ protected:
     }
 
     const ByteBuffer& ValueImpl() const noexcept override {
-        static const ByteBuffer kEmpty;
-        return iter_ ? iter_->Value() : kEmpty;
+        return iter_ ? iter_->Value() : empty_buffer_;
     }
 
     void NextImpl() noexcept override {
@@ -200,6 +206,7 @@ protected:
 
 private:
     std::unique_ptr<StorageIterator> iter_;
+    ByteBuffer empty_buffer_;
 };
 
 /**
@@ -212,4 +219,3 @@ inline std::unique_ptr<FusedIterator> MakeSafe(std::unique_ptr<StorageIterator> 
     return std::make_unique<SafeIteratorWrapper>(std::move(iter));
 }
 
-} // namespace util

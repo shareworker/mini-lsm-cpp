@@ -7,7 +7,6 @@
 #include "../include/simple_leveled_compaction_controller.hpp"
 #include "../include/tiered_compaction_controller.hpp"
 
-namespace util {
 
 namespace {
 
@@ -59,4 +58,3 @@ std::unique_ptr<CompactionController> CompactionController::Create(
 // Backward compatibility methods implementation
 // Variant-based interface methods removed - using standard SimpleLeveledCompactionTask interface
 
-} // namespace util

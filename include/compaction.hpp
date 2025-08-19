@@ -4,7 +4,6 @@
 #include <optional>
 #include <vector>
 
-namespace util {
 
 // Defines the compaction strategy.
 enum class CompactionStrategy {
@@ -24,4 +23,3 @@ struct SimpleLeveledCompactionTask {
     bool is_lower_level_bottom_level;
 };
 
-} // namespace util

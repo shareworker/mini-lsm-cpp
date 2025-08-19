@@ -5,7 +5,6 @@
 #include "storage_iterator.hpp"
 #include "byte_buffer.hpp"
 
-namespace util {
 
 /**
  * @brief MVCC-aware merge iterator for multiple versioned iterators.
@@ -72,6 +71,6 @@ private:
         uint64_t read_ts);
         
     std::unique_ptr<StorageIterator> iter_;
+    ByteBuffer empty_buffer_;
 };
 
-} // namespace util

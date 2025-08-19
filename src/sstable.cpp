@@ -13,7 +13,6 @@
 #include <algorithm>  // for binary_search
 #include <system_error>
 
-namespace util {
 
 /**************** BlockMeta encode/decode ****************/ 
 static void PutU32(std::vector<uint8_t>& buf, uint32_t v) {
@@ -220,4 +219,3 @@ size_t SsTable::FindBlockIdx(const ByteBuffer& target) const noexcept {
     return left == 0 ? 0 : left - 1;
 }
 
-}  // namespace util

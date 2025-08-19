@@ -1,6 +1,5 @@
 #include "mvcc_watermark.hpp"
 
-namespace util {
 
 Watermark::Watermark() = default;
 
@@ -31,4 +30,3 @@ std::optional<uint64_t> Watermark::GetWatermark() const {
     return readers_.begin()->first;
 }
 
-} // namespace util

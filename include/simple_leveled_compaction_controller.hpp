@@ -11,7 +11,6 @@
 
 #include "compaction_controller.hpp"
 
-namespace util {
 
 // Forward declarations
 class LsmStorageState;
@@ -44,4 +43,3 @@ private:
     SimpleLeveledCompactionOptions options_;
 };
 
-} // namespace util

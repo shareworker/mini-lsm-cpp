@@ -11,7 +11,6 @@
 #include "../include/wal.hpp"
 
 
-namespace util {
 
 std::unique_ptr<MemTable> MemTable::Create(size_t id) {
     return std::unique_ptr<MemTable>(new MemTable(id));
@@ -286,4 +285,3 @@ MemTableIterator MemTable::NewIterator(const Bound& lower_bound,
     return MemTableIterator(skiplist_, lower_bound, upper_bound);
 }
 
-}  // namespace util

@@ -6,8 +6,6 @@
 
 #include "storage_iterator.hpp"
 
-namespace util {
-
 /**
  * @brief MergeIterator merges N sorted forward iterators producing a single
  *        ascending stream without duplicates (preferring lower iterator index
@@ -108,4 +106,3 @@ public:
     }
 };
 
-}  // namespace util

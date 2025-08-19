@@ -12,8 +12,6 @@
 #include "byte_buffer.hpp"
 #include "mvcc_skiplist.hpp"
 
-namespace util {
-
 /**
  * @brief MVCC-aware Write-Ahead Log that supports timestamp persistence
  * 
@@ -133,4 +131,3 @@ private:
     static constexpr uint8_t kEntryTypeDelete = 2;
 };
 
-}  // namespace util

@@ -13,7 +13,6 @@
 #include "sstable.hpp"
 #include "bound.hpp"
 
-namespace util {
 
 /**
  * @brief Concatenate multiple `SsTableIterator` instances whose key ranges do
@@ -131,4 +130,3 @@ private:
     size_t next_sst_idx_{0};
 };
 
-}  // namespace util

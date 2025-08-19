@@ -8,7 +8,6 @@
 #include <utility>
 #include "block.hpp"
 
-namespace util {
 
 // Thread-safe size-bounded LRU cache for blocks.
 // Similar to Rust's `moka::sync::Cache`, eviction is based on the number of
@@ -70,4 +69,3 @@ private:
     mutable std::mutex mu_;
 };
 
-}  // namespace util

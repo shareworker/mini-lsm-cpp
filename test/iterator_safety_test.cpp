@@ -11,7 +11,6 @@
 #include "byte_buffer.hpp"
 #include "block.hpp"
 
-namespace util {
 namespace test {
 
 /**
@@ -22,6 +21,7 @@ private:
     std::vector<std::pair<std::string, std::string>> data_;
     size_t pos_ = 0;
     bool force_invalid_ = false;
+    mutable ByteBuffer value_buffer_;
 
 public:
     explicit MockIterator(std::vector<std::pair<std::string, std::string>> data)
@@ -39,13 +39,13 @@ public:
     }
 
     const ByteBuffer& Value() const noexcept override {
-        static ByteBuffer buffer;
+        // Use member variable instead of static to avoid state pollution between tests
         if (!IsValid()) {
-            buffer = ByteBuffer{};
+            value_buffer_ = ByteBuffer{};
         } else {
-            buffer = ByteBuffer(data_[pos_].second);
+            value_buffer_ = ByteBuffer(data_[pos_].second);
         }
-        return buffer;
+        return value_buffer_;
     }
 
     void Next() noexcept override {
@@ -340,7 +340,6 @@ TEST_F(IteratorSafetyTest, EmptyMergeIteratorSafety) {
 }
 
 } // namespace test
-} // namespace util
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

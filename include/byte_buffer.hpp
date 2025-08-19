@@ -8,7 +8,6 @@
 #include <string_view>
 #include <vector>
 
-namespace util {
 
 /**
  * @brief A reference-counted byte buffer with zero-copy operations
@@ -230,7 +229,6 @@ private:
     size_t size_;
 };
 
-}  // namespace util
 
 namespace std {
 
@@ -241,8 +239,8 @@ namespace std {
  * like std::unordered_map and std::unordered_set.
  */
 template <>
-struct hash<util::ByteBuffer> {
-    size_t operator()(const util::ByteBuffer& buf) const {
+struct hash<ByteBuffer> {
+    size_t operator()(const ByteBuffer& buf) const {
         return std::hash<std::string_view>{}(
             std::string_view(buf.Data(), buf.Size()));
     }

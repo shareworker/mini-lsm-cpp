@@ -13,8 +13,6 @@
 #include <mutex>
 #include <atomic>
 
-namespace util {
-
 /**
  * @brief Iterator over transaction-local data for MVCC scans.
  * 
@@ -47,8 +45,7 @@ public:
      * @return ByteBuffer reference to the current key
      */
     ByteBuffer Key() const noexcept override { 
-        static const ByteBuffer empty_buffer;
-        if (!valid_) return empty_buffer;
+        if (!valid_) return empty_buffer_;
         
         // If we have a versioned key (from storage), strip the timestamp
         ByteBuffer key = current_->first;
@@ -64,8 +61,7 @@ public:
      * @return ByteBuffer reference to the current value
      */
     const ByteBuffer& Value() const noexcept override { 
-        static const ByteBuffer empty_buffer;
-        if (!valid_) return empty_buffer;
+        if (!valid_) return empty_buffer_;
         return current_->second; 
     }
     
@@ -86,13 +82,15 @@ public:
      */
     void Seek(const ByteBuffer& key) noexcept {
         current_ = data_.lower_bound(key);
-        valid_ = (current_ != data_.end());
+        valid_ = (current_ != end_);
     }
     
 private:
     std::map<ByteBuffer, ByteBuffer> data_; ///< Sorted map of keys and values
     std::map<ByteBuffer, ByteBuffer>::iterator current_; ///< Current position in the map
+    std::map<ByteBuffer, ByteBuffer>::iterator end_; ///< End position in the map
     bool valid_; ///< Whether the iterator is valid
+    ByteBuffer empty_buffer_; ///< Empty buffer for invalid iterator
 };
 
 
@@ -235,4 +233,3 @@ private:
     mutable std::mutex mutex_;
 };
 
-} // namespace util

@@ -5,7 +5,6 @@
 #include "../include/mvcc_transaction.hpp"
 #include "../include/mvcc_lsm_storage.hpp"
 
-namespace util {
 
 std::unique_ptr<MiniLsmMvcc> MiniLsmMvcc::Create(const Options& options, const std::filesystem::path& path) {
     return std::make_unique<MiniLsmMvcc>(path, options);
@@ -55,4 +54,3 @@ void MiniLsmMvcc::Close() {
     }
 }
 
-} // namespace util

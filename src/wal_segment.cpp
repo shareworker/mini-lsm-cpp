@@ -26,7 +26,6 @@
 #include <fcntl.h>   // for open/close
 #endif
 
-namespace util {
 
 namespace {
 
@@ -55,13 +54,10 @@ struct WalHeader {
 
 // CRC32 checksum calculation for data integrity
 uint32_t CalculateChecksum(const std::vector<uint8_t>& data) {
-    // Make sure tables are initialized
-    static bool initialized = false;
-    if (!initialized) {
-        util::Crc32c::Initialize();
-        initialized = true;
-    }
-    return util::Crc32c::Compute(data);
+    // Initialize CRC32 tables every time to avoid static state pollution
+    // This is safe to call multiple times as it's idempotent
+    Crc32c::Initialize();
+    return Crc32c::Compute(data);
 }
 
 // Utility functions for byte manipulation
@@ -253,7 +249,7 @@ std::unique_ptr<WalSegment> WalSegment::Recover(
                 }
                 
                 // Apply to skiplist
-                util::Crc32c::Initialize();
+                Crc32c::Initialize();
                 ByteBuffer key(buffer.data(), key_len);
                 ByteBuffer value(buffer.data() + key_len, val_len);
                 
@@ -597,4 +593,3 @@ bool WalSegment::Sync() {
     return !file_->fail();
 }
 
-}  // namespace util

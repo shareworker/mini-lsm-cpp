@@ -16,7 +16,6 @@
 #include "bound.hpp"
 #include "byte_buffer.hpp"
 
-namespace util {
 
 /**
  * @brief SkipMap implementation for MVCC local storage
@@ -109,4 +108,3 @@ private:
     std::map<ByteBuffer, ByteBuffer> map_;
 };
 
-} // namespace util

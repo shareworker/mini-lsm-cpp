@@ -3,7 +3,6 @@
 
 #include "byte_buffer.hpp"
 
-namespace util {
 namespace test {
 
 // Simple test for basic iterator safety concepts
@@ -89,7 +88,6 @@ TEST(BasicIteratorSafetyTest, MultipleIteratorCoordination) {
 }
 
 } // namespace test
-} // namespace util
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

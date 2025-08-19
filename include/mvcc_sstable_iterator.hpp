@@ -7,7 +7,6 @@
 #include "bound.hpp"
 #include <memory>
 
-namespace util {
 
 /**
  * @brief MVCC-aware SSTable iterator that provides timestamp filtering during iteration.
@@ -108,6 +107,6 @@ private:
     ByteBuffer current_value_;     // Cached value
     ByteBuffer last_user_key_;     // Last seen user key (for skipping older versions)
     bool has_last_key_{false};     // Whether we have seen a user key before
+    ByteBuffer empty_buffer_; // Empty buffer for invalid states
 };
 
-} // namespace util

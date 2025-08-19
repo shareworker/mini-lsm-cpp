@@ -7,8 +7,6 @@
 #include "block.hpp"
 #include "byte_buffer.hpp"
 
-namespace util {
-
 class BlockIterator {
 public:
     BlockIterator() = default;
@@ -33,8 +31,7 @@ public:
 
     ByteBuffer Value() const noexcept {
         if (!IsValid()) {
-            static ByteBuffer kEmpty;
-            return kEmpty;
+            return empty_buffer_;
         }
         return ByteBuffer(block_->Data().data() + value_range_.first,
                            value_range_.second - value_range_.first);
@@ -104,11 +101,9 @@ private:
 
     ByteBuffer ExtractFirstKey() const {
         const std::vector<uint8_t> &data = block_->Data();
-        uint16_t overlap = ReadU16(data.data()); // should be 0 for first
-        (void)overlap;
-        uint16_t key_len = ReadU16(data.data() + 2);
-        ByteBuffer key(data.data() + 4, key_len);
-        return key;
+        const uint8_t *ptr = data.data();
+        uint16_t key_len = ReadU16(ptr + 2);
+        return ByteBuffer(ptr + 4, key_len);
     }
 
     static uint16_t ReadU16(const uint8_t *ptr) noexcept {
@@ -116,10 +111,10 @@ private:
     }
 
     BlockPtr block_;
-    ByteBuffer key_;
+    std::pair<size_t, size_t> key_range_{0, 0};
     std::pair<size_t, size_t> value_range_{0, 0};
+    ByteBuffer key_;
     size_t idx_{0};
+    ByteBuffer empty_buffer_;
     ByteBuffer first_key_;
 };
-
-}  // namespace util

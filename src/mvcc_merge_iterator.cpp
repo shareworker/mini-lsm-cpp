@@ -6,7 +6,6 @@
 #include <vector>
 
 
-namespace util {
 
 MvccMergeIterator MvccMergeIterator::Create(
     std::vector<std::unique_ptr<StorageIterator>> iters,
@@ -76,13 +75,11 @@ void MvccMergeIterator::Next() noexcept {
 }
 
 ByteBuffer MvccMergeIterator::Key() const noexcept {
-    static const ByteBuffer kEmpty;
-    return IsValid() ? iter_->Key() : kEmpty;
+    return IsValid() ? iter_->Key() : empty_buffer_;
 }
 
 const ByteBuffer& MvccMergeIterator::Value() const noexcept {
-    static const ByteBuffer kEmpty;
-    return IsValid() ? iter_->Value() : kEmpty;
+    return IsValid() ? iter_->Value() : empty_buffer_;
 }
 
 std::unique_ptr<StorageIterator> MvccMergeIterator::BuildMergeTree(
@@ -206,4 +203,3 @@ void MvccMergeIterator::SeekToFirst() {
     // This covers cases like iterators that are created in a "first" state
 }
 
-} // namespace util

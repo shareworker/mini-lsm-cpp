@@ -6,8 +6,6 @@
 #include "sstable.hpp"
 #include "bound.hpp"
 
-namespace util {
-
 // Forward declaration; full definition provided in `sstable.hpp` (future).
 class SsTable;
 
@@ -132,4 +130,3 @@ private:
     mutable ByteBuffer value_cache_;
 };
 
-}  // namespace util

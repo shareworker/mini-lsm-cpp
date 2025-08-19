@@ -8,7 +8,6 @@
 #include <map>
 #include <unordered_set>
 
-namespace util {
 
 class SsTable;
 
@@ -99,6 +98,6 @@ private:
     std::unique_ptr<StorageIterator> iter_;
     uint64_t read_ts_ = UINT64_MAX; // Default to maximum timestamp for latest version
     std::map<ByteBuffer, bool> visited_keys_; // Track keys we've already processed
+    ByteBuffer empty_buffer_; // Empty buffer for invalid states
 };
 
-} // namespace util

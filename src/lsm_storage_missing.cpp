@@ -1,6 +1,5 @@
 #include "../include/lsm_storage.hpp"
 
-namespace util {
 
 bool LsmStorageInner::ForceFlushNextImmMemtable() {
     // Acquire state lock for atomic operations
@@ -113,4 +112,3 @@ bool LsmStorageInner::Flush() {
     return true;
 }
 
-} // namespace util

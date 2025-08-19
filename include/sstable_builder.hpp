@@ -11,8 +11,6 @@
 #include "byte_buffer.hpp"
 #include "sstable.hpp"  // for BlockMeta definition
 
-namespace util {
-
 // Forward declarations to avoid heavy dependencies for now.
 struct BlockMeta;              // defined in sstable.hpp later
 class SsTable;                 // forward
@@ -36,19 +34,20 @@ public:
     // Adds a key-value pair into the SSTable being built.
     void Add(const ByteBuffer& key, const std::vector<uint8_t>& value) {
         if (first_key_.Empty()) {
-            first_key_ = key;
+            // Create a deep copy to ensure data is preserved
+            first_key_ = ByteBuffer(key.Data(), key.Size());
         }
         key_hashes_.push_back(Fingerprint32(key));
 
         if (builder_.Add(key, value)) {
-            last_key_ = key;
+            last_key_ = ByteBuffer(key.Data(), key.Size());  // Create a deep copy
             return;
         }
         // Current block is full – finalize it and start a new one.
         FinishBlock();
         bool ok = builder_.Add(key, value);
         assert(ok);
-        first_key_ = last_key_ = key;
+        first_key_ = last_key_ = ByteBuffer(key.Data(), key.Size());  // Create a deep copy
     }
 
     // Approximate size so far (without yet-to-be-flushed block)
@@ -62,7 +61,7 @@ public:
         const std::string& file_path);
 
 private:
-    static uint32_t Fingerprint32(const ByteBuffer& key);
+    static uint32_t Fingerprint32(const ByteBuffer& key); 
     static uint32_t Crc32(const std::vector<uint8_t>& buf);
 
     void FinishBlock() {
@@ -97,4 +96,3 @@ private:
     std::vector<uint32_t> key_hashes_;
 };
 
-} // namespace util

@@ -7,7 +7,6 @@
 
 #include "lsm_storage.hpp"
 
-namespace util {
 
 // Forward declarations
 class LsmStorageState;
@@ -15,4 +14,3 @@ class LsmStorageOptions;
 
 
 
-} // namespace util

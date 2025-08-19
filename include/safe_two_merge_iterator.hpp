@@ -6,7 +6,6 @@
 #include "fused_iterator.hpp"
 #include "storage_iterator.hpp"
 
-namespace util {
 
 /**
  * @brief Enhanced two-merge iterator with FusedIterator safety guarantees
@@ -234,4 +233,3 @@ inline std::unique_ptr<FusedIterator> CreateSafeTwoMergeIterator(
     return SafeTwoMergeIterator::Create(std::move(a), std::move(b));
 }
 
-} // namespace util

@@ -7,8 +7,6 @@
 #include "compaction_controller.hpp"
 #include "lsm_storage.hpp"
 
-namespace util {
-
 // Forward declarations
 class LsmStorageState;
 
@@ -58,4 +56,3 @@ private:
     TieredCompactionOptions options_;
 };
 
-} // namespace util

@@ -6,8 +6,6 @@
 #include <memory>
 #include <utility>
 
-namespace util {
-
 /**
  * @brief Specialized skiplist for MVCC that uses KeyTs (composite key + timestamp) for versioning.
  * 
@@ -116,4 +114,3 @@ private:
     std::shared_ptr<SkipList<KeyTs, ByteBuffer>> skiplist_;
 };
 
-} // namespace util

@@ -15,7 +15,6 @@
 #include "skip_map.hpp"
 #include "storage_iterator.hpp"
 
-namespace util {
 
 // Forward declarations
 class LsmStorageInner;
@@ -116,4 +115,3 @@ private:
         std::unique_ptr<StorageIterator> iter_;
 };
 
-} // namespace util

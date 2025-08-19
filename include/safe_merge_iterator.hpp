@@ -8,7 +8,6 @@
 #include "fused_iterator.hpp"
 #include "storage_iterator.hpp"
 
-namespace util {
 
 /**
  * @brief Enhanced merge iterator with FusedIterator safety guarantees
@@ -150,6 +149,12 @@ public:
     explicit SafeMergeIterator(std::vector<std::unique_ptr<StorageIterator>> iters)
         : iters_(std::move(iters)) {
         
+        // Handle empty iterator list
+        if (iters_.empty()) {
+            current_.valid = false;
+            return;
+        }
+        
         // Validate input iterators
         for (size_t i = 0; i < iters_.size(); ++i) {
             if (!iters_[i]) {
@@ -261,4 +266,3 @@ inline std::unique_ptr<FusedIterator> CreateSafeMergeIterator(
     return SafeMergeIterator::Create(std::move(iters));
 }
 
-} // namespace util

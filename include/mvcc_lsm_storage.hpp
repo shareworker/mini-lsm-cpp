@@ -11,7 +11,6 @@
 #include <shared_mutex>
 #include <atomic>
 
-namespace util {
 
 // Forward declarations
 class LsmMvccInner;
@@ -229,4 +228,3 @@ private:
     std::vector<std::shared_ptr<MvccMemTable>> imm_memtables_;
 };
 
-} // namespace util

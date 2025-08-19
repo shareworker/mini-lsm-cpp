@@ -13,7 +13,6 @@
 #include "../include/wal.hpp"
 #include "../include/mvcc_wal.hpp"
 
-namespace util {
 
 std::unique_ptr<MvccMemTable> MvccMemTable::Create(size_t id) {
     return std::unique_ptr<MvccMemTable>(new MvccMemTable(id));
@@ -276,4 +275,3 @@ MvccMemTableIterator::MvccMemTableIterator(
     }
 }
 
-} // namespace util

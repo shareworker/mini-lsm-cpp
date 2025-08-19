@@ -8,7 +8,6 @@
 #include "../include/lsm_storage.hpp"
 #include "../include/sstable.hpp"
 
-namespace util {
 
 // Helper function to calculate total size of SSTs in a level
 static uint64_t CalculateLevelSize(const std::vector<size_t>& sst_ids,
@@ -145,4 +144,3 @@ bool SimpleLeveledCompactionController::ApplyCompaction(
     return true;
 }
 
-} // namespace util

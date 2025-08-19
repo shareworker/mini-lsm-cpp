@@ -4,7 +4,6 @@
 #include <cstring>
 #include <utility>
 
-namespace util {
 
 ByteBuffer::ByteBuffer()
     : data_(std::make_shared<std::vector<char>>()),
@@ -13,20 +12,20 @@ ByteBuffer::ByteBuffer()
 }
 
 ByteBuffer::ByteBuffer(const char* cstr)
-    : ByteBuffer(cstr, std::strlen(cstr)) {
+    : ByteBuffer(cstr, cstr ? std::strlen(cstr) : 0) {
 }
 
 ByteBuffer::ByteBuffer(const char* data, size_t size)
-    : data_(std::make_shared<std::vector<char>>(data, data + size)),
+    : data_(data ? std::make_shared<std::vector<char>>(data, data + size) : std::make_shared<std::vector<char>>()),
       offset_(0),
-      size_(size) {
+      size_(data ? size : 0) {
 }
 
 ByteBuffer::ByteBuffer(const uint8_t* data, size_t size)
-    : data_(std::make_shared<std::vector<char>>(reinterpret_cast<const char*>(data),
-                                             reinterpret_cast<const char*>(data + size))),
+    : data_(data ? std::make_shared<std::vector<char>>(reinterpret_cast<const char*>(data),
+                                             reinterpret_cast<const char*>(data + size)) : std::make_shared<std::vector<char>>()),
       offset_(0),
-      size_(size) {
+      size_(data ? size : 0) {
 }
 
 ByteBuffer::ByteBuffer(const std::string& str)
@@ -181,4 +180,3 @@ ByteBuffer::ByteBuffer(std::shared_ptr<const std::vector<char>> data, size_t off
       size_(size) {
 }
 
-}  // namespace util

@@ -6,7 +6,6 @@
 #include "block_iterator.hpp"
 #include "block.hpp"
 
-namespace util {
 
 /**
  * @brief Enhanced block iterator with FusedIterator safety guarantees
@@ -22,8 +21,9 @@ private:
     std::unique_ptr<BlockIterator> block_iter_;
     
     // Safety state tracking
-    mutable size_t access_count_ = 0;
-    mutable bool state_corrupted_ = false;
+    mutable size_t access_count_{0};
+    mutable bool state_corrupted_{false};
+    ByteBuffer empty_buffer_;
     
     // Cached state for consistency
     mutable bool validity_cached_ = false;
@@ -201,10 +201,8 @@ protected:
     const ByteBuffer& ValueImpl() const noexcept override {
         ++access_count_;
         
-        static const ByteBuffer kEmpty;
-        
         if (state_corrupted_ || !block_iter_) {
-            return kEmpty;
+            return empty_buffer_;
         }
 
         try {
@@ -212,7 +210,7 @@ protected:
             return value;
         } catch (...) {
             state_corrupted_ = true;
-            return kEmpty;
+            return empty_buffer_;
         }
     }
 
@@ -256,4 +254,3 @@ inline std::unique_ptr<FusedIterator> CreateSafeBlockIteratorSeekToKey(
     return SafeBlockIterator::CreateAndSeekToKey(std::move(block), key);
 }
 
-} // namespace util

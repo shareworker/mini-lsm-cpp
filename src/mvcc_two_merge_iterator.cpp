@@ -3,7 +3,6 @@
 #include <memory>
 #include <utility>
 
-namespace util {
 
 MvccTwoMergeIterator MvccTwoMergeIterator::Create(
     std::unique_ptr<StorageIterator> iter1,
@@ -78,23 +77,21 @@ void MvccTwoMergeIterator::Next() noexcept {
 }
 
 ByteBuffer MvccTwoMergeIterator::Key() const noexcept {
-    static const ByteBuffer kEmpty;
     if (current_ == 1) {
         return ExtractUserKey(iter1_->Key());
     } else if (current_ == 2) {
         return ExtractUserKey(iter2_->Key());
     }
-    return kEmpty;
+    return empty_buffer_;
 }
 
 const ByteBuffer& MvccTwoMergeIterator::Value() const noexcept {
-    static const ByteBuffer kEmpty;
     if (current_ == 1) {
         return iter1_->Value();
     } else if (current_ == 2) {
         return iter2_->Value();
     }
-    return kEmpty;
+    return empty_buffer_;
 }
 
 void MvccTwoMergeIterator::ForwardCurrent() noexcept {
@@ -213,4 +210,3 @@ void MvccTwoMergeIterator::UpdateCurrent() noexcept {
     }
 }
 
-} // namespace util

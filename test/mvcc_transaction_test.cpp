@@ -8,7 +8,6 @@
 #include <string>
 #include <chrono>
 
-namespace util {
 
 class MvccTransactionTest : public ::testing::Test {
 protected:
@@ -219,7 +218,6 @@ TEST_F(MvccTransactionTest, OperateOnInactiveTransaction) {
     EXPECT_FALSE(txn2->Put(key, value));
 }
 
-} // namespace util
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);

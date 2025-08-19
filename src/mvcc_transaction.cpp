@@ -13,7 +13,6 @@
 #include <mutex>
 #include <utility>
 
-namespace util {
 
 std::unique_ptr<MvccTransaction> MvccTransaction::Begin(
     std::shared_ptr<MvccLsmStorage> storage,
@@ -406,4 +405,3 @@ void MvccTransaction::Abort() {
     state_ = State::kAborted;
 }
 
-} // namespace util

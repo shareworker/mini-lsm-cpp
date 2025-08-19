@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <utility>
 
-namespace util {
 
 // RangeIterator implementation
 SkipMap::RangeIterator::RangeIterator(
@@ -88,4 +87,3 @@ std::unique_ptr<SkipMap::RangeIterator> SkipMap::Range(
                                             upper_it);
 }
 
-} // namespace util

@@ -19,15 +19,13 @@
 #include "mvcc_txn.hpp"
 #include "storage_iterator.hpp"
 
-using namespace util;
 
 class MiniLsmComprehensiveTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Create a unique temporary directory for each test case to ensure isolation
-        // Include test case name and timestamp to guarantee uniqueness
-        auto test_info = ::testing::UnitTest::GetInstance()->current_test_info();
-        std::string unique_name = std::string("mini_lsm_test_") + 
+        // Create a unique test directory based on test name and timestamp
+        const ::testing::TestInfo* test_info = ::testing::UnitTest::GetInstance()->current_test_info();
+        std::string unique_name = std::string("mini_lsm_test_") +
                                  test_info->test_suite_name() + "_" +
                                  test_info->name() + "_" +
                                  std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -47,19 +45,45 @@ protected:
         
         lsm_ = MiniLsm::Open(test_dir_, options);
         
-        // Create a MVCC LSM instance
-        options.serializable = true;
-        mvcc_lsm_ = std::make_shared<MiniLsmMvcc>(test_dir_ / "mvcc", options);
+        // Only create MVCC instance for MVCC-specific tests to avoid interference
+        if (std::string(test_info->name()).find("Mvcc") != std::string::npos) {
+            options.serializable = true;
+            mvcc_lsm_ = std::make_shared<MiniLsmMvcc>(test_dir_ / "mvcc", options);
+        }
     }
     
     void TearDown() override {
-        // Close the LSM instances
-        lsm_->Close();
-        lsm_.reset();
-        mvcc_lsm_.reset();
+        // Close the LSM instances with error handling
+        if (lsm_) {
+            try {
+                lsm_->Close();
+            } catch (...) {
+                // Ignore close errors during cleanup
+            }
+            lsm_.reset();
+        }
         
-        // Clean up the test directory
-        std::filesystem::remove_all(test_dir_);
+        if (mvcc_lsm_) {
+            try {
+                mvcc_lsm_->Close();
+            } catch (...) {
+                // Ignore close errors during cleanup
+            }
+            mvcc_lsm_.reset();
+        }
+        
+        // Force cleanup of test directory with retry
+        for (int retry = 0; retry < 3; ++retry) {
+            try {
+                std::filesystem::remove_all(test_dir_);
+                break;
+            } catch (...) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            }
+        }
+        
+        // Small delay to ensure file system operations complete
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     
     std::filesystem::path test_dir_;

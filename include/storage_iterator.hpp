@@ -2,7 +2,6 @@
 
 #include "byte_buffer.hpp"
 
-namespace util {
 
 /**
  * @brief Generic interface for forward storage iterators.
@@ -45,4 +44,3 @@ public:
     virtual void Next() noexcept = 0;
 };
 
-}  // namespace util

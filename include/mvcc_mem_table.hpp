@@ -15,7 +15,6 @@
 #include "bound.hpp"
 #include "mem_table.hpp"
 
-namespace util {
 
 // Forward declarations
 class MvccMemTableIterator;
@@ -218,13 +217,11 @@ public:
     }
     
     ByteBuffer Key() const noexcept override {
-        static const ByteBuffer kEmpty;
-        return IsValid() ? items_[index_].first : kEmpty;
+        return IsValid() ? items_[index_].first : empty_buffer_;
     }
     
     const ByteBuffer& Value() const noexcept override {
-        static const ByteBuffer kEmpty;
-        return IsValid() ? items_[index_].second : kEmpty;
+        return IsValid() ? items_[index_].second : empty_buffer_;
     }
 
 private:
@@ -238,7 +235,6 @@ private:
     
     std::shared_ptr<MvccSkipList> skiplist_;
     std::vector<std::pair<ByteBuffer, ByteBuffer>> items_;
-    size_t index_{0};
+    size_t index_;
+    ByteBuffer empty_buffer_;
 };
-
-} // namespace util

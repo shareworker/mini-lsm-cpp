@@ -11,7 +11,6 @@
 #include "byte_buffer.hpp"
 #include "skiplist.hpp"
 
-namespace util {
 
 /**
  * @brief Segmented Write-Ahead Log (WAL) for durability.
@@ -197,4 +196,3 @@ private:
     size_t current_size_{0};
 };
 
-}  // namespace util

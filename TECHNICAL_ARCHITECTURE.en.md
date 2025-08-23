@@ -215,13 +215,37 @@ Because scans hold a snapshot (`shared_ptr<LsmStorageState>`), iterators see a s
 
 ---
 
-### 3. Compaction Strategies
+### 3. Manifest (`manifest.hpp`, `manifest.cpp`)
+
+The `MANIFEST` file is the source of truth for the LSM-Tree's structure. It's an append-only log that records every significant event, such as flushing a `MemTable` to an `SSTable` or completing a `Compaction`. This design ensures that even if the system crashes, it can reconstruct its state by replaying the `MANIFEST` records.
+
+#### 3.1. Record Format
+
+The `MANIFEST` file consists of a sequence of records. Each record is a JSON object, prefixed with its length (as a 64-bit integer), making it easy to read one record at a time.
+
+There are three main types of records:
+*   **`Flush`**: `{"type": "flush", "id": <sst_id>}`. This record indicates that a `MemTable` has been flushed to a new `SSTable` with the given ID. The new `SSTable` is always added to Level 0.
+*   **`Compaction`**: `{"type": "compaction", "from_level": <l_from>, "from_ids": [...], "to_level": <l_to>, "to_ids": [...]}`. This records that a compaction has occurred, moving data from one level to another. It specifies the source and destination levels, and the IDs of the `SSTables` that were removed and added.
+*   **`NewMemtable`**: `{"type": "new_memtable", "id": <memtable_id>}`. This record is used to signal the creation of a new `MemTable`, but it is not persisted to disk and is ignored during recovery.
+
+#### 3.2. Recovery Process (`Manifest::Open`)
+
+When the engine starts, `Manifest::Open` is called to read the `MANIFEST` file from beginning to end. It reconstructs the `LsmStorageState` by applying each record in order:
+1.  It starts with an empty state.
+2.  For each `Flush` record, it adds the new `SSTable` ID to the Level 0 list.
+3.  For each `Compaction` record, it removes the `from_ids` from the `from_level` and adds the `to_ids` to the `to_level`.
+
+After replaying all records, the in-memory state accurately reflects the file layout on disk, allowing the engine to resume normal operations.
+
+---
+
+### 4. Compaction Strategies
 
 Compaction is the background process responsible for merging SSTables to clean up deleted or updated values, reduce the number of files, and maintain the structure of the LSM-Tree for efficient reads. The `CompactionController` is a pluggable component that implements the specific strategy for when and how to perform compaction.
 
 A compaction process is defined by a `CompactionTask`. This structure specifies which SSTables to merge and into which level the results should be placed. The engine generates a task, executes the merge, and then applies the result to the LSM state. mini-lsm-cpp supports multiple compaction strategies, each with different trade-offs between read, write, and space amplification.
 
-#### 3.1. Tiered Compaction (`tiered_compaction_controller.hpp`)
+#### 4.1. Tiered Compaction (`tiered_compaction_controller.hpp`)
 
 Also known as Size-Tiered Compaction (STCS). This strategy groups SSTables of similar sizes into "tiers".
 
@@ -229,7 +253,7 @@ Also known as Size-Tiered Compaction (STCS). This strategy groups SSTables of si
 *   **Pros**: Low write amplification, as data is rewritten less frequently. Good for write-heavy workloads.
 *   **Cons**: Higher space amplification, as multiple copies of the same key can exist across different SSTs of various sizes. Read amplification is also higher because a key lookup may need to check multiple SSTs.
 
-#### 3.2. Leveled Compaction (`leveled_compaction_controller.hpp`)
+#### 4.2. Leveled Compaction (`leveled_compaction_controller.hpp`)
 
 This strategy (inspired by LevelDB) aims to control space amplification more strictly. The total size of each level `L` is capped at a target size.
 
@@ -237,7 +261,7 @@ This strategy (inspired by LevelDB) aims to control space amplification more str
 *   **Pros**: Low space and read amplification. Data for a given key range is likely to be in a single SSTable at any given level, making reads fast.
 *   **Cons**: Higher write amplification compared to tiered compaction, because merging a small SST from level `L` can cause a large amount of data in level `L+1` to be rewritten.
 
-#### 3.3. Simple Leveled Compaction (`simple_leveled_compaction_controller.hpp`)
+#### 4.3. Simple Leveled Compaction (`simple_leveled_compaction_controller.hpp`)
 
 This is a simplified version of leveled compaction.
 
@@ -385,4 +409,3 @@ A flexible, asynchronous logging framework is provided to aid in debugging and m
 
 *   **`FileObject`**: A simple RAII (Resource Acquisition Is Initialization) wrapper around a file handle. It ensures that files are properly closed when they go out of scope and provides basic read/create operations.
 *   **`Crc32c`**: Provides a software implementation of the CRC32C (Castagnoli) checksum algorithm. Checksums are appended to data blocks and WAL records to verify data integrity and detect corruption during reads or recovery.
-

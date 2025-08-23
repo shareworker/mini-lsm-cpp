@@ -590,12 +590,35 @@ public:
 
 这一设计优雅地解决了并发环境下“迭代器失效”这一棘手问题，使得用户可以安全地进行长时间的范围扫描，而不必担心后台操作会干扰读取过程。
 
+---
+
+### 3. `Manifest` (`manifest.hpp`, `manifest.cpp`)
+
+`MANIFEST` 文件是 LSM-Tree 结构体的真理来源。它是一个只追加的日志，记录了每一个重要事件，例如将 `MemTable` 刷新到 `SSTable` 或完成一次 `Compaction`。这种设计确保了即使系统崩溃，它也可以通过重放 `MANIFEST` 记录来重建其状态。
+
+#### 3.1. 记录格式
+
+`MANIFEST` 文件由一系列记录组成。每条记录都是一个 JSON 对象，以其长度（64 位整数）作为前缀，这使得一次读取一条记录变得容易。
+
+主要有三种类型的记录：
+*   **`Flush`**: `{"type": "flush", "id": <sst_id>}`。此记录表示 `MemTable` 已刷新到具有给定 ID 的新 `SSTable`。新的 `SSTable` 始终添加到 Level 0。
+*   **`Compaction`**: `{"type": "compaction", "from_level": <l_from>, "from_ids": [...], "to_level": <l_to>, "to_ids": [...]}`。此记录表示已发生压缩，将数据从一个级别移动到另一个级别。它指定了源级别和目标级别，以及已删除和添加的 `SSTable` 的 ID。
+*   **`NewMemtable`**: `{"type": "new_memtable", "id": <memtable_id>}`。此记录用于表示创建了一个新的 `MemTable`，但它不会持久化到磁盘，并在恢复期间被忽略。
+
+#### 3.2. 恢复过程 (`Manifest::Open`)
+
+当引擎启动时，会调用 `Manifest::Open` 从头到尾读取 `MANIFEST` 文件。它通过按顺序应用每条记录来重建 `LsmStorageState`：
+1.  它从空状态开始。
+2.  对于每条 `Flush` 记录，它将新的 `SSTable` ID 添加到 Level 0 列表。
+3.  对于每条 `Compaction` 记录，它从 `from_level` 中删除 `from_ids` 并将 `to_ids` 添加到 `to_level`。
+
+重放所有记录后，内存中的状态准确地反映了磁盘上的文件布局，从而允许引擎恢复正常操作。
 
 ---
 
-### 3. 核心流程分析
+### 4. 核心流程分析
 
-#### 3.1. 引擎启动: `LsmStorageInner::Open`
+#### 4.1. 引擎启动: `LsmStorageInner::Open`
 
 **功能说明**: `Open` 负责在启动时从磁盘加载 `MANIFEST` 和 `WAL`，恢复整个 LSM-Tree 到上次关闭前的状态。
 
@@ -609,7 +632,7 @@ public:
 4.  **创建活跃 `MemTable`**: 使用上一步中由 `WAL` 恢复数据填充的 `SkipList`，创建一个新的 `MemTable` 作为当前活跃的 `MemTable`。
 5.  **组装状态**: 将恢复的 `SSTable` 列表、`MemTable` 等全部信息组装成一个初始的 `LsmStorageState`，引擎准备就绪。
 
-#### 3.2. 范围扫描: `LsmStorageInner::Scan`
+#### 4.2. 范围扫描: `LsmStorageInner::Scan`
 
 **功能说明**: `Scan` 是 LSM-Tree 最复杂的操作之一。它需要将分散在内存（多个 `MemTable`）和磁盘（多个层级、多个 `SSTable`）中的数据，合并成一个统一的、有序的视图。
 
@@ -662,7 +685,7 @@ std::unique_ptr<StorageIterator> LsmStorageInner::Scan(const Bound& lower, const
     *   **过滤墓碑**: 检查 `MergeIterator` 返回的 `Value`，如果为空（墓碑标记），则跳过该条目，继续调用 `Next()`。
     *   **处理上界**: 确保迭代器在到达 `upper` 边界时停止。
 
-#### 3.2.1. 可视化：LSM 迭代器栈
+#### 4.2.1. 可视化：LSM 迭代器栈
 
 `LsmStorageInner::Scan` 的强大之处在于它将多个功能各异的迭代器组合成一个“迭代器栈”。每一个上层迭代器都包装一个或多个下层迭代器，对其输出进行加工，最终为用户提供一个统一、有序、干净的数据视图。
 
@@ -704,7 +727,7 @@ std::unique_ptr<StorageIterator> LsmStorageInner::Scan(const Bound& lower, const
 
 通过这个栈式结构，系统将复杂的合并、过滤逻辑分解到不同的组件中，实现了高度的模块化和可扩展性。
 
-#### 3.3. `Flush` 流程: 从 `MemTable` 到 `SSTable`
+#### 4.3. `Flush` 流程: 从 `MemTable` 到 `SSTable`
 
 **功能说明**: 当 `MemTable` 写满时，需要将其内容持久化为磁盘上的一个 `SSTable` 文件。
 
@@ -727,7 +750,7 @@ std::unique_ptr<StorageIterator> LsmStorageInner::Scan(const Bound& lower, const
         *   如果成功创建了新的 `SSTable`，则将其 ID 添加到 `l0_sstables` 列表的头部。
     *   如果生成了新的 `SSTable`，则向 `MANIFEST` 文件追加一条 `Flush` 记录。
 
-#### 3.4. `Compaction` 流程: 后台优化
+#### 4.4. `Compaction` 流程: 后台优化
 
 **功能说明**: `Compaction` 是 LSM-Tree 的后台管家，负责合并 `SSTable`，以控制文件数量、清理冗余数据（被覆盖或删除的键），从而优化读取性能。
 
@@ -745,7 +768,7 @@ std::unique_ptr<StorageIterator> LsmStorageInner::Scan(const Bound& lower, const
     *   向 `MANIFEST` 文件追加一条 `Compaction` 记录，原子地记录这次状态变更。
     *   最后，安全地删除所有被合并掉的旧的 `.sst` 文件。
 
-#### 3.5. 压缩策略控制器: `CompactionController`
+#### 4.5. 压缩策略控制器: `CompactionController`
 
 `Compaction` 的时机和方式对 LSM-Tree 的性能至关重要，不同的策略在读放大、写放大和空间放大之间有不同的权衡。`mini-lsm-cpp` 通过 `CompactionController` 接口将压缩策略模块化，允许用户根据应用场景选择最合适的策略。
 
